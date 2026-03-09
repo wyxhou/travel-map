@@ -8,141 +8,193 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lora:ital,wght@0,400;0,500;1,400&family=Dancing+Script:wght@500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --cream:      #faf4ec;
-  --parchment:  #f0e6d4;
-  --blush:      #e8d0c0;
-  --rosegold:   #c49a7a;
-  --rosegold-l: #ddb898;
-  --rosegold-d: #a07858;
-  --ink:        #3a2e28;
-  --ink-dim:    #7a6858;
-  --ink-faint:  #b0a090;
-  --memory:     #c8956a;   /* warm amber — been there */
-  --dream:      #9a8cc0;   /* soft violet — want to go */
-  --dream-l:    #c0b4e0;
-  --memory-l:   #e0b898;
+  --bg:         #100c08;
+  --bg2:        #1a1208;
+  --panel:      rgba(28, 21, 16, 0.92);
+  --cream:      #fdf4e8;
+  --parchment:  #ede0c8;
+  --rosegold:   #d4a070;
+  --rosegold-l: #ecc090;
+  --rosegold-d: #b07848;
+  --ink:        #faeedd;
+  --ink-dim:    #c8a878;
+  --ink-faint:  #907560;
+  --memory:     #e08850;
+  --dream:      #9080d8;
+  --border:     rgba(200,149,106,0.2);
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
 
 html, body {
   width:100%; height:100%; overflow:hidden;
-  background: var(--cream);
+  background: var(--bg);
   font-family: 'Lora', serif;
   color: var(--ink);
-  cursor: grab;
-}
-body.dragging { cursor: grabbing; }
-
-/* ── GRAIN TEXTURE OVERLAY ───────────────────────────────────────────────── */
-body::after {
-  content:''; position:fixed; inset:0; pointer-events:none; z-index:100;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  opacity: 0.55;
 }
 
-/* ── BACKGROUND ──────────────────────────────────────────────────────────── */
+/* ── BACKGROUND ── */
 .bg {
   position:fixed; inset:0; z-index:0;
-  background:
-    radial-gradient(ellipse 70% 60% at 50% 50%, #fdf8f2 0%, var(--parchment) 55%, var(--blush) 100%);
+  background: radial-gradient(ellipse 80% 80% at 50% 50%,
+    #221a12 0%, #1a1208 60%, #100c06 100%);
 }
-
-/* Soft vignette */
 .bg::after {
   content:''; position:absolute; inset:0;
-  background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 50%, rgba(180,150,120,0.18) 100%);
+  background: radial-gradient(ellipse 60% 60% at 50% 50%,
+    rgba(200,149,106,0.06) 0%, transparent 70%);
 }
 
-/* Decorative corner flourishes */
+/* ── CORNER FLOURISHES ── */
 .corner {
   position:fixed; z-index:2; pointer-events:none;
-  width:120px; height:120px; opacity:0.25;
+  width:100px; height:100px; opacity:0.18;
 }
 .corner svg { width:100%; height:100%; }
-.corner.tl { top:16px; left:16px; }
-.corner.tr { top:16px; right:16px; transform:scaleX(-1); }
-.corner.bl { bottom:16px; left:16px; transform:scaleY(-1); }
-.corner.br { bottom:16px; right:16px; transform:scale(-1); }
+.corner.tl { top:12px; left:12px; }
+.corner.tr { top:12px; right:12px; transform:scaleX(-1); }
+.corner.bl { bottom:12px; left:12px; transform:scaleY(-1); }
+.corner.br { bottom:12px; right:12px; transform:scale(-1); }
 
-/* ── HEADER ──────────────────────────────────────────────────────────────── */
-.header {
-  position:fixed; top:0; left:0; right:0; z-index:20;
-  text-align:center; padding:22px 20px 16px;
-  pointer-events:none;
+/* ── LAYOUT: side panel left, globe right ── */
+.layout {
+  position:fixed; inset:0; z-index:10;
+  display:grid;
+  grid-template-columns: 300px 1fr;
 }
-.header-title {
+
+/* ── LEFT PANEL ── */
+.side-panel {
+  display:flex; flex-direction:column;
+  padding:36px 28px 28px;
+  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(18,12,8,0.99) 0%, rgba(14,9,5,0.99) 100%);
+  overflow-y: auto; gap:28px;
+  z-index:11;
+}
+
+.side-panel::-webkit-scrollbar { width:2px; }
+.side-panel::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+.panel-title {
   font-family:'Cormorant Garamond', serif;
   font-style:italic; font-weight:300;
-  font-size:clamp(1.4rem, 3.5vw, 2.2rem);
-  color:var(--ink); letter-spacing:0.08em;
-  text-shadow: 0 1px 12px rgba(180,140,100,0.2);
+  font-size:2.1rem; line-height:1.1;
+  color:var(--cream);
+  letter-spacing:0.04em;
 }
-.header-sub {
-  font-size:0.68rem; letter-spacing:0.22em;
+.panel-sub {
+  font-size:0.62rem; letter-spacing:0.24em;
   color:var(--ink-faint); text-transform:uppercase;
-  margin-top:5px;
+  margin-top:6px;
+}
+.panel-divider {
+  width:40px; height:1px;
+  background:linear-gradient(to right, var(--rosegold), transparent);
+  margin-top:14px;
 }
 
-/* ── LEGEND ──────────────────────────────────────────────────────────────── */
-.legend {
-  position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
-  z-index:20; display:flex; align-items:center; gap:24px;
-  background:rgba(250,244,236,0.82); backdrop-filter:blur(10px);
-  border:1px solid rgba(196,154,122,0.25); border-radius:40px;
-  padding:10px 24px; pointer-events:none;
+/* Count stats */
+.stats {
+  display:flex; flex-direction:column; gap:12px;
 }
-.legend-item { display:flex; align-items:center; gap:7px; }
-.legend-dot {
-  width:10px; height:10px; border-radius:50%;
-  box-shadow:0 0 0 2px rgba(255,255,255,0.6);
+.stat-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 14px;
+  background:rgba(200,149,106,0.1);
+  border:1px solid rgba(200,149,106,0.25);
+  border-radius:6px;
 }
-.legend-dot.memory { background:var(--memory); }
-.legend-dot.dream  { background:var(--dream); }
-.legend-label { font-size:0.68rem; letter-spacing:0.12em; color:var(--ink-dim); }
-.legend-div { width:1px; height:16px; background:rgba(196,154,122,0.3); }
+.stat-label {
+  display:flex; align-items:center; gap:8px;
+  font-size:0.7rem; letter-spacing:0.1em;
+  text-transform:uppercase; color:var(--ink-dim);
+}
+.stat-dot {
+  width:8px; height:8px; border-radius:50%;
+  flex-shrink:0;
+}
+.stat-dot.all    { background:var(--rosegold); }
+.stat-dot.memory { background:var(--memory); }
+.stat-dot.dream  { background:var(--dream); }
+.stat-num {
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.4rem; font-weight:400; line-height:1;
+  color:var(--cream);
+}
 
-/* ── HINT ────────────────────────────────────────────────────────────────── */
-.hint {
-  position:fixed; top:50%; right:24px; transform:translateY(-50%);
-  z-index:20; writing-mode:vertical-rl; text-orientation:mixed;
-  font-size:0.6rem; letter-spacing:0.2em; color:var(--ink-faint);
-  text-transform:uppercase; pointer-events:none;
+/* Place list */
+.place-list-label {
+  font-size:0.58rem; letter-spacing:0.22em;
+  text-transform:uppercase; color:var(--ink-faint);
+  margin-bottom:8px;
+}
+.place-list { display:flex; flex-direction:column; gap:5px; }
+
+.place-row {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 12px; border-radius:6px; cursor:pointer;
+  border:1px solid transparent;
+  transition:background 0.18s, border-color 0.18s;
+}
+.place-row:hover {
+  background:rgba(200,149,106,0.1);
+  border-color:var(--border);
+}
+.place-row.active {
+  background:rgba(200,149,106,0.14);
+  border-color:rgba(200,149,106,0.35);
+}
+.place-row-dot {
+  width:7px; height:7px; border-radius:50%; flex-shrink:0;
+}
+.place-row-dot.memory { background:var(--memory); box-shadow:0 0 5px rgba(212,132,90,0.5); }
+.place-row-dot.dream  { background:var(--dream);  box-shadow:0 0 5px rgba(136,120,200,0.5); }
+.place-row-name {
+  font-size:0.8rem; color:#fdf4e8; flex:1; font-weight:500;
+}
+.place-row-type {
+  font-size:0.58rem; color:var(--ink-faint);
+  font-style:italic;
+}
+
+/* Hint */
+.drag-hint {
+  font-size:0.6rem; letter-spacing:0.18em;
+  color:var(--ink-faint); text-transform:uppercase;
+  text-align:center; margin-top:auto; padding-top:16px;
   animation:hintFade 3s ease-in-out infinite;
 }
-@keyframes hintFade { 0%,100%{opacity:0.4;} 50%{opacity:0.9;} }
+@keyframes hintFade { 0%,100%{opacity:0.3;} 50%{opacity:0.7;} }
 
-/* ── GLOBE CONTAINER ─────────────────────────────────────────────────────── */
-#globe-wrap {
-  position:fixed; inset:0; z-index:10;
+/* ── GLOBE AREA ── */
+.globe-area {
+  position:relative;
   display:flex; align-items:center; justify-content:center;
+  cursor:grab; overflow:hidden;
+  padding: 72px 24px 72px 24px; /* top/bottom clearance for any floating UI */
 }
+.globe-area.dragging { cursor:grabbing; }
 
 canvas#globe {
   border-radius:50%;
   box-shadow:
-    0 0 0 1px rgba(196,154,122,0.2),
-    0 0 60px 20px rgba(200,160,120,0.12),
-    0 20px 80px rgba(140,100,70,0.18);
-  cursor:grab;
+    0 0 0 1px rgba(200,149,106,0.25),
+    0 0 80px 30px rgba(200,120,70,0.1),
+    0 30px 100px rgba(0,0,0,0.6);
 }
-body.dragging canvas#globe { cursor:grabbing; }
 
-/* ── PIN TOOLTIP ─────────────────────────────────────────────────────────── */
+/* ── PIN CARD (floating over globe) ── */
 .pin-card {
-  position:fixed; z-index:50;
-  width:260px;
-  background:rgba(250,244,236,0.96);
-  border:1px solid rgba(196,154,122,0.3);
-  border-radius:12px; overflow:hidden;
-  box-shadow:
-    0 8px 40px rgba(140,100,70,0.22),
-    0 2px 8px rgba(140,100,70,0.12),
-    0 0 0 1px rgba(255,255,255,0.6);
+  position:absolute; z-index:50;
+  width:240px;
+  background: #160f09;
+  border:1px solid rgba(200,149,106,0.35);
+  border-radius:10px; overflow:hidden;
+  box-shadow: 0 12px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
   opacity:0; pointer-events:none;
-  transform:translateY(8px) scale(0.96);
-  transition:opacity 0.25s ease, transform 0.25s ease;
-  backdrop-filter:blur(12px);
+  transform:translateY(10px) scale(0.95);
+  transition:opacity 0.22s ease, transform 0.22s ease;
 }
 .pin-card.visible {
   opacity:1; pointer-events:all;
@@ -150,87 +202,52 @@ body.dragging canvas#globe { cursor:grabbing; }
 }
 
 .pin-card-img {
-  width:100%; height:130px; object-fit:cover; display:block;
-  background: linear-gradient(135deg, var(--parchment), var(--blush));
+  width:100%; height:120px; object-fit:cover; display:block;
 }
 .pin-card-img-placeholder {
-  width:100%; height:130px;
-  background:linear-gradient(135deg, var(--parchment) 0%, var(--blush) 100%);
+  width:100%; height:110px;
+  background:linear-gradient(135deg, #2a1e14 0%, #1e1510 100%);
   display:flex; align-items:center; justify-content:center;
-  font-size:2.5rem;
+  font-size:2.8rem;
+  border-bottom:1px solid var(--border);
 }
 
 .pin-card-body { padding:14px 16px 16px; }
 
 .pin-card-type {
-  font-size:0.55rem; letter-spacing:0.22em; text-transform:uppercase;
-  margin-bottom:5px; font-family:'Lora',serif;
+  font-size:0.52rem; letter-spacing:0.24em; text-transform:uppercase;
+  margin-bottom:6px;
 }
 .pin-card-type.memory { color:var(--memory); }
 .pin-card-type.dream  { color:var(--dream); }
 
 .pin-card-name {
   font-family:'Cormorant Garamond',serif;
-  font-size:1.25rem; font-weight:600; color:var(--ink);
+  font-size:1.3rem; font-weight:600; color:var(--cream);
   margin-bottom:8px; line-height:1.2;
 }
-
 .pin-card-divider {
-  width:32px; height:1px;
+  width:28px; height:1px;
   background:linear-gradient(to right, var(--rosegold), transparent);
   margin-bottom:10px;
 }
-
 .pin-card-date {
-  font-size:0.65rem; color:var(--ink-faint);
-  letter-spacing:0.08em; margin-bottom:6px;
-  font-style:italic;
+  font-size:0.62rem; color:#988060;
+  letter-spacing:0.06em; margin-bottom:7px; font-style:italic;
 }
-
 .pin-card-note {
-  font-family:'Lora',serif; font-style:italic;
-  font-size:0.78rem; line-height:1.65; color:var(--ink-dim);
+  font-style:italic; font-size:0.76rem;
+  line-height:1.65; color:#c8a878;
 }
-
 .pin-card-close {
-  position:absolute; top:8px; right:10px;
-  background:rgba(250,244,236,0.85); border:none; cursor:pointer;
-  width:24px; height:24px; border-radius:50%;
-  font-size:0.75rem; color:var(--ink-dim);
+  position:absolute; top:8px; right:8px;
+  background:rgba(0,0,0,0.5); border:1px solid var(--border);
+  cursor:pointer; width:22px; height:22px; border-radius:50%;
+  font-size:0.65rem; color:var(--ink-dim);
   display:flex; align-items:center; justify-content:center;
-  transition:background 0.2s;
-  box-shadow:0 1px 4px rgba(0,0,0,0.1);
+  transition:background 0.18s;
 }
-.pin-card-close:hover { background:white; }
-
-/* ── COUNT BADGE ─────────────────────────────────────────────────────────── */
-.count-badge {
-  position:fixed; top:90px; left:50%; transform:translateX(-50%);
-  z-index:20; display:flex; gap:20px; pointer-events:none;
-}
-.count-item {
-  text-align:center;
-  opacity:0; animation:fadeUp 1s ease forwards;
-}
-.count-item:nth-child(1){ animation-delay:0.4s; }
-.count-item:nth-child(2){ animation-delay:0.6s; }
-.count-item:nth-child(3){ animation-delay:0.8s; }
-@keyframes fadeUp { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
-
-.count-num {
-  font-family:'Cormorant Garamond',serif;
-  font-size:1.6rem; font-weight:300; line-height:1;
-  color:var(--rosegold-d);
-}
-.count-lbl {
-  font-size:0.55rem; letter-spacing:0.18em;
-  text-transform:uppercase; color:var(--ink-faint);
-  margin-top:3px;
-}
-.count-div {
-  width:1px; background:rgba(196,154,122,0.25);
-  align-self:stretch; margin:4px 0;
-}
+.pin-card-close:hover { background:rgba(200,149,106,0.2); color:var(--cream); }
 </style>
 </head>
 <body>
@@ -238,79 +255,62 @@ body.dragging canvas#globe { cursor:grabbing; }
 <div class="bg"></div>
 
 <!-- Corner flourishes -->
-<div class="corner tl"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1" fill="none"/>
-  <path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/>
-  <circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.5"/>
-  <circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.4"/>
-  <path d="M5 70 Q5 5 70 5" stroke="#c49a7a" stroke-width="0.3" fill="none" opacity="0.3"/>
-</svg></div>
-<div class="corner tr"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1" fill="none"/>
-  <path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/>
-  <circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.5"/>
-  <circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.4"/>
-</svg></div>
-<div class="corner bl"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1" fill="none"/>
-  <path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/>
-  <circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.5"/>
-  <circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.4"/>
-</svg></div>
-<div class="corner br"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1" fill="none"/>
-  <path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/>
-  <circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.5"/>
-  <circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.4"/>
-</svg></div>
+<div class="corner tl"><svg viewBox="0 0 100 100" fill="none"><path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1.2" fill="none"/><path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/><circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.6"/><circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.5"/></svg></div>
+<div class="corner tr"><svg viewBox="0 0 100 100" fill="none"><path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1.2" fill="none"/><path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/><circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.6"/><circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.5"/></svg></div>
+<div class="corner bl"><svg viewBox="0 0 100 100" fill="none"><path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1.2" fill="none"/><path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/><circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.6"/><circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.5"/></svg></div>
+<div class="corner br"><svg viewBox="0 0 100 100" fill="none"><path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1.2" fill="none"/><path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/><circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.6"/><circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.5"/></svg></div>
 
-<!-- Header -->
-<div class="header">
-  <div class="header-title">our map</div>
-  <div class="header-sub">· the places that are ours ·</div>
-</div>
+<div class="layout">
 
-<!-- Count badges -->
-<div class="count-badge" id="countBadge">
-  <div class="count-item"><div class="count-num" id="countTotal">0</div><div class="count-lbl">places</div></div>
-  <div class="count-div"></div>
-  <div class="count-item"><div class="count-num" id="countMemory">0</div><div class="count-lbl">memories</div></div>
-  <div class="count-div"></div>
-  <div class="count-item"><div class="count-num" id="countDream">0</div><div class="count-lbl">dreams</div></div>
-</div>
+  <!-- LEFT SIDE PANEL -->
+  <div class="side-panel">
+    <div>
+      <div class="panel-title">our map</div>
+      <div class="panel-sub">the places that are ours</div>
+      <div class="panel-divider"></div>
+    </div>
 
-<!-- Globe -->
-<div id="globe-wrap">
-  <canvas id="globe"></canvas>
-</div>
+    <div class="stats">
+      <div class="stat-row">
+        <div class="stat-label"><div class="stat-dot all"></div>all places</div>
+        <div class="stat-num" id="countTotal">0</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label"><div class="stat-dot memory"></div>memories</div>
+        <div class="stat-num" id="countMemory">0</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label"><div class="stat-dot dream"></div>dreams</div>
+        <div class="stat-num" id="countDream">0</div>
+      </div>
+    </div>
 
-<!-- Legend -->
-<div class="legend">
-  <div class="legend-item">
-    <div class="legend-dot memory"></div>
-    <span class="legend-label">a memory</span>
+    <div>
+      <div class="place-list-label">· all places ·</div>
+      <div class="place-list" id="placeList"></div>
+    </div>
+
+    <div class="drag-hint">drag the globe to explore</div>
   </div>
-  <div class="legend-div"></div>
-  <div class="legend-item">
-    <div class="legend-dot dream"></div>
-    <span class="legend-label">a dream</span>
-  </div>
-</div>
 
-<!-- Hint -->
-<div class="hint">drag to spin</div>
+  <!-- GLOBE AREA -->
+  <div class="globe-area" id="globeArea">
+    <canvas id="globe"></canvas>
 
-<!-- Pin card tooltip -->
-<div class="pin-card" id="pinCard">
-  <button class="pin-card-close" id="pinClose">✕</button>
-  <div id="pinImgWrap"></div>
-  <div class="pin-card-body">
-    <div class="pin-card-type" id="pinType"></div>
-    <div class="pin-card-name" id="pinName"></div>
-    <div class="pin-card-divider"></div>
-    <div class="pin-card-date" id="pinDate"></div>
-    <div class="pin-card-note" id="pinNote"></div>
+    <!-- Pin card (floats over globe) -->
+    <div class="pin-card" id="pinCard">
+      <button class="pin-card-close" id="pinClose">✕</button>
+      <div id="pinImgWrap"></div>
+      <div class="pin-card-body">
+        <div class="pin-card-type" id="pinType"></div>
+        <div class="pin-card-name" id="pinName"></div>
+        <div class="pin-card-divider"></div>
+        <div class="pin-card-date" id="pinDate"></div>
+        <div class="pin-card-note" id="pinNote"></div>
+      </div>
+    </div>
   </div>
+
 </div>
 
 <script>
@@ -385,14 +385,16 @@ const PLACES = [
 ];
 
 // ── GLOBE SETUP ─────────────────────────────────────────────────────────────
-const canvas = document.getElementById('globe');
-const ctx    = canvas.getContext('2d');
+const canvas    = document.getElementById('globe');
+const ctx       = canvas.getContext('2d');
+const globeArea = document.getElementById('globeArea');
 
 let R, cx, cy; // globe radius and center
 
 function resize() {
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const size = Math.min(vw * 0.72, vh * 0.72, 560);
+  const area = globeArea.getBoundingClientRect();
+  // Subtract padding (144px top+bottom, 48px left+right) so globe never touches edges
+  const size = Math.min((area.width - 48) * 0.92, (area.height - 144) * 0.92, 560);
   canvas.width  = size;
   canvas.height = size;
   R  = size / 2 - 2;
@@ -449,20 +451,14 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // ── Globe base
-  const grad = ctx.createRadialGradient(cx - R * 0.25, cy - R * 0.25, R * 0.1, cx, cy, R);
-  grad.addColorStop(0,   '#fdf8f2');
-  grad.addColorStop(0.4, '#f5ead8');
-  grad.addColorStop(0.8, '#e8d4bc');
-  grad.addColorStop(1,   '#d8c0a8');
+  // Ocean base — deep blue
+  const oceanGrad = ctx.createRadialGradient(cx - R*0.3, cy - R*0.3, R*0.1, cx, cy, R);
+  oceanGrad.addColorStop(0,   '#1e4060');
+  oceanGrad.addColorStop(0.5, '#152d48');
+  oceanGrad.addColorStop(1,   '#0c1a28');
   ctx.beginPath();
   ctx.arc(cx, cy, R, 0, Math.PI * 2);
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // ── Ocean tint
-  ctx.beginPath();
-  ctx.arc(cx, cy, R, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(180,200,220,0.18)';
+  ctx.fillStyle = oceanGrad;
   ctx.fill();
 
   // ── Latitude / longitude grid lines
@@ -504,7 +500,7 @@ function draw() {
 
 function drawGrid() {
   ctx.save();
-  ctx.strokeStyle = 'rgba(180,150,120,0.12)';
+  ctx.strokeStyle = 'rgba(100,150,200,0.22)';
   ctx.lineWidth = 0.6;
 
   // Latitude lines every 30°
@@ -561,9 +557,9 @@ function drawLand() {
           else ctx.lineTo(p2.x, p2.y);
         });
         if (hadVisible) {
-          ctx.fillStyle   = 'rgba(190,165,135,0.55)';
-          ctx.strokeStyle = 'rgba(160,130,100,0.35)';
-          ctx.lineWidth   = 0.5;
+          ctx.fillStyle   = 'rgba(205,168,118,0.95)';
+          ctx.strokeStyle = 'rgba(235,200,150,0.7)';
+          ctx.lineWidth   = 0.4;
           ctx.fill();
           ctx.stroke();
         }
@@ -596,32 +592,32 @@ function drawPins() {
     if (!visible) return;
 
     const isMemory = place.type === 'memory';
-    const col      = isMemory ? '#c8956a' : '#9a8cc0';
+    const col      = isMemory ? '#e08850' : '#9080d8';
     const colLight = isMemory ? '#e0b898' : '#c0b4e0';
 
     // Pin glow
-    const glow = ctx.createRadialGradient(p2.x, p2.y, 0, p2.x, p2.y, 14);
-    glow.addColorStop(0, isMemory ? 'rgba(200,149,106,0.4)' : 'rgba(154,140,192,0.4)');
+    const glow = ctx.createRadialGradient(p2.x, p2.y, 0, p2.x, p2.y, 22);
+    glow.addColorStop(0, isMemory ? 'rgba(220,136,80,0.55)' : 'rgba(144,128,216,0.55)');
     glow.addColorStop(1, 'transparent');
     ctx.beginPath();
-    ctx.arc(p2.x, p2.y, 14, 0, Math.PI * 2);
+    ctx.arc(p2.x, p2.y, 22, 0, Math.PI * 2);
     ctx.fillStyle = glow;
     ctx.globalAlpha = fade;
     ctx.fill();
 
     // Outer ring
     ctx.beginPath();
-    ctx.arc(p2.x, p2.y, 7, 0, Math.PI * 2);
-    ctx.fillStyle   = 'rgba(250,244,236,0.9)';
+    ctx.arc(p2.x, p2.y, 8, 0, Math.PI * 2);
+    ctx.fillStyle   = 'rgba(255,252,245,1)';
     ctx.strokeStyle = col;
-    ctx.lineWidth   = 1.5;
+    ctx.lineWidth   = 2.2;
     ctx.globalAlpha = fade;
     ctx.fill();
     ctx.stroke();
 
     // Inner dot
     ctx.beginPath();
-    ctx.arc(p2.x, p2.y, 3.5, 0, Math.PI * 2);
+    ctx.arc(p2.x, p2.y, 4, 0, Math.PI * 2);
     ctx.fillStyle = col;
     ctx.globalAlpha = fade;
     ctx.fill();
@@ -714,7 +710,7 @@ canvas.addEventListener('mousedown', e => {
   spinning = true;
   autoSpin = false;
   lastX = e.clientX; lastY = e.clientY;
-  document.body.classList.add('dragging');
+  globeArea.classList.add('dragging');
   hideCard();
 });
 
@@ -730,7 +726,7 @@ window.addEventListener('mousemove', e => {
 
 window.addEventListener('mouseup', () => {
   spinning = false;
-  document.body.classList.remove('dragging');
+  globeArea.classList.remove('dragging');
   // Resume auto-spin after 4s idle
   setTimeout(() => { autoSpin = true; }, 4000);
 });
@@ -809,13 +805,21 @@ function showCard(idx, screenX, screenY) {
     imgWrap.innerHTML = `<div class="pin-card-img-placeholder">${place.emoji}</div>`;
   }
 
-  // Position card — keep it within viewport
-  const cardW = 260, cardH = 320;
-  let left = screenX + 16;
-  let top  = screenY - cardH / 2;
-  if (left + cardW > window.innerWidth  - 16) left = screenX - cardW - 16;
-  if (top  < 16) top = 16;
-  if (top  + cardH > window.innerHeight - 16) top = window.innerHeight - cardH - 16;
+  // Position card relative to globeArea
+  const area = globeArea.getBoundingClientRect();
+  const cardW = 240, cardH = 320;
+  // canvasX/Y relative to globeArea
+  const pos = pinScreenPositions[idx];
+  const canvasRect = canvas.getBoundingClientRect();
+  const pinAreaX = canvasRect.left - area.left + pos.x;
+  const pinAreaY = canvasRect.top  - area.top  + pos.y;
+
+  let left = pinAreaX + 20;
+  let top  = pinAreaY - cardH / 2;
+  if (left + cardW > area.width  - 12) left = pinAreaX - cardW - 20;
+  if (top  < 12) top = 12;
+  if (top  + cardH > area.height - 12) top = area.height - cardH - 12;
+  left = Math.max(8, left);
 
   card.style.left = left + 'px';
   card.style.top  = top  + 'px';
@@ -829,10 +833,61 @@ function hideCard() {
 
 pinClose.addEventListener('click', hideCard);
 
-// ── COUNT BADGES ──────────────────────────────────────────────────────────────
+// ── COUNTS ────────────────────────────────────────────────────────────────────
 document.getElementById('countTotal').textContent  = PLACES.length;
 document.getElementById('countMemory').textContent = PLACES.filter(p => p.type==='memory').length;
 document.getElementById('countDream').textContent  = PLACES.filter(p => p.type==='dream').length;
+
+// ── PLACE LIST ─────────────────────────────────────────────────────────────────
+const placeList = document.getElementById('placeList');
+PLACES.forEach((place, idx) => {
+  const row = document.createElement('div');
+  row.className = 'place-row';
+  row.id = 'place-row-' + idx;
+  row.innerHTML = `
+    <div class="place-row-dot ${place.type}"></div>
+    <div class="place-row-name">${place.name}</div>
+    <div class="place-row-type">${place.type === 'memory' ? 'memory' : 'dream'}</div>
+  `;
+  row.addEventListener('click', () => {
+    // Spin globe to face this place, then show card
+    const p3 = latLngTo3D(place.lat, place.lng);
+    // Target rotation: make this point face front (z=1)
+    // lng offset: rotY = -(lng * pi/180) + pi
+    const targetRotY = -(place.lng * Math.PI / 180) + Math.PI;
+    const targetRotX = -(place.lat * Math.PI / 180);
+    // Animate spin
+    autoSpin = false;
+    const startY = rotY, startX = rotX;
+    let dY = targetRotY - startY;
+    // Take shortest path
+    while (dY > Math.PI)  dY -= 2 * Math.PI;
+    while (dY < -Math.PI) dY += 2 * Math.PI;
+    const dX = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotX)) - startX;
+    const dur = 900, t0 = performance.now();
+    function animSpin(t) {
+      const prog = Math.min(1, (t - t0) / dur);
+      const ease = 1 - Math.pow(1 - prog, 3);
+      rotY = startY + dY * ease;
+      rotX = startX + dX * ease;
+      if (prog < 1) { requestAnimationFrame(animSpin); }
+      else {
+        // Show card at pin position
+        const pos = pinScreenPositions[idx];
+        if (pos && pos.visible) {
+          const canvasRect = canvas.getBoundingClientRect();
+          showCard(idx, canvasRect.left + pos.x, canvasRect.top + pos.y);
+        }
+        setTimeout(() => { autoSpin = true; }, 5000);
+      }
+    }
+    requestAnimationFrame(animSpin);
+    // Highlight row
+    document.querySelectorAll('.place-row').forEach(r => r.classList.remove('active'));
+    row.classList.add('active');
+  });
+  placeList.appendChild(row);
+});
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 resize();
