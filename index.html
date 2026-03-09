@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Map · Aishu & Bagachi</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f0e6d8'/%3E%3Ctext x='6' y='24' font-size='20'%3E🗺️%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lora:ital,wght@0,400;0,500;1,400&family=Dancing+Script:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:      #faf4ec;
+  --parchment:  #f0e6d4;
+  --blush:      #e8d0c0;
+  --rosegold:   #c49a7a;
+  --rosegold-l: #ddb898;
+  --rosegold-d: #a07858;
+  --ink:        #3a2e28;
+  --ink-dim:    #7a6858;
+  --ink-faint:  #b0a090;
+  --memory:     #c8956a;   /* warm amber — been there */
+  --dream:      #9a8cc0;   /* soft violet — want to go */
+  --dream-l:    #c0b4e0;
+  --memory-l:   #e0b898;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  width:100%; height:100%; overflow:hidden;
+  background: var(--cream);
+  font-family: 'Lora', serif;
+  color: var(--ink);
+  cursor: grab;
+}
+body.dragging { cursor: grabbing; }
+
+/* ── GRAIN TEXTURE OVERLAY ───────────────────────────────────────────────── */
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:100;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.55;
+}
+
+/* ── BACKGROUND ──────────────────────────────────────────────────────────── */
+.bg {
+  position:fixed; inset:0; z-index:0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%, #fdf8f2 0%, var(--parchment) 55%, var(--blush) 100%);
+}
+
+/* Soft vignette */
+.bg::after {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 50%, rgba(180,150,120,0.18) 100%);
+}
+
+/* Decorative corner flourishes */
+.corner {
+  position:fixed; z-index:2; pointer-events:none;
+  width:120px; height:120px; opacity:0.25;
+}
+.corner svg { width:100%; height:100%; }
+.corner.tl { top:16px; left:16px; }
+.corner.tr { top:16px; right:16px; transform:scaleX(-1); }
+.corner.bl { bottom:16px; left:16px; transform:scaleY(-1); }
+.corner.br { bottom:16px; right:16px; transform:scale(-1); }
+
+/* ── HEADER ──────────────────────────────────────────────────────────────── */
+.header {
+  position:fixed; top:0; left:0; right:0; z-index:20;
+  text-align:center; padding:22px 20px 16px;
+  pointer-events:none;
+}
+.header-title {
+  font-family:'Cormorant Garamond', serif;
+  font-style:italic; font-weight:300;
+  font-size:clamp(1.4rem, 3.5vw, 2.2rem);
+  color:var(--ink); letter-spacing:0.08em;
+  text-shadow: 0 1px 12px rgba(180,140,100,0.2);
+}
+.header-sub {
+  font-size:0.68rem; letter-spacing:0.22em;
+  color:var(--ink-faint); text-transform:uppercase;
+  margin-top:5px;
+}
+
+/* ── LEGEND ──────────────────────────────────────────────────────────────── */
+.legend {
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+  z-index:20; display:flex; align-items:center; gap:24px;
+  background:rgba(250,244,236,0.82); backdrop-filter:blur(10px);
+  border:1px solid rgba(196,154,122,0.25); border-radius:40px;
+  padding:10px 24px; pointer-events:none;
+}
+.legend-item { display:flex; align-items:center; gap:7px; }
+.legend-dot {
+  width:10px; height:10px; border-radius:50%;
+  box-shadow:0 0 0 2px rgba(255,255,255,0.6);
+}
+.legend-dot.memory { background:var(--memory); }
+.legend-dot.dream  { background:var(--dream); }
+.legend-label { font-size:0.68rem; letter-spacing:0.12em; color:var(--ink-dim); }
+.legend-div { width:1px; height:16px; background:rgba(196,154,122,0.3); }
+
+/* ── HINT ────────────────────────────────────────────────────────────────── */
+.hint {
+  position:fixed; top:50%; right:24px; transform:translateY(-50%);
+  z-index:20; writing-mode:vertical-rl; text-orientation:mixed;
+  font-size:0.6rem; letter-spacing:0.2em; color:var(--ink-faint);
+  text-transform:uppercase; pointer-events:none;
+  animation:hintFade 3s ease-in-out infinite;
+}
+@keyframes hintFade { 0%,100%{opacity:0.4;} 50%{opacity:0.9;} }
+
+/* ── GLOBE CONTAINER ─────────────────────────────────────────────────────── */
+#globe-wrap {
+  position:fixed; inset:0; z-index:10;
+  display:flex; align-items:center; justify-content:center;
+}
+
+canvas#globe {
+  border-radius:50%;
+  box-shadow:
+    0 0 0 1px rgba(196,154,122,0.2),
+    0 0 60px 20px rgba(200,160,120,0.12),
+    0 20px 80px rgba(140,100,70,0.18);
+  cursor:grab;
+}
+body.dragging canvas#globe { cursor:grabbing; }
+
+/* ── PIN TOOLTIP ─────────────────────────────────────────────────────────── */
+.pin-card {
+  position:fixed; z-index:50;
+  width:260px;
+  background:rgba(250,244,236,0.96);
+  border:1px solid rgba(196,154,122,0.3);
+  border-radius:12px; overflow:hidden;
+  box-shadow:
+    0 8px 40px rgba(140,100,70,0.22),
+    0 2px 8px rgba(140,100,70,0.12),
+    0 0 0 1px rgba(255,255,255,0.6);
+  opacity:0; pointer-events:none;
+  transform:translateY(8px) scale(0.96);
+  transition:opacity 0.25s ease, transform 0.25s ease;
+  backdrop-filter:blur(12px);
+}
+.pin-card.visible {
+  opacity:1; pointer-events:all;
+  transform:translateY(0) scale(1);
+}
+
+.pin-card-img {
+  width:100%; height:130px; object-fit:cover; display:block;
+  background: linear-gradient(135deg, var(--parchment), var(--blush));
+}
+.pin-card-img-placeholder {
+  width:100%; height:130px;
+  background:linear-gradient(135deg, var(--parchment) 0%, var(--blush) 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-size:2.5rem;
+}
+
+.pin-card-body { padding:14px 16px 16px; }
+
+.pin-card-type {
+  font-size:0.55rem; letter-spacing:0.22em; text-transform:uppercase;
+  margin-bottom:5px; font-family:'Lora',serif;
+}
+.pin-card-type.memory { color:var(--memory); }
+.pin-card-type.dream  { color:var(--dream); }
+
+.pin-card-name {
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.25rem; font-weight:600; color:var(--ink);
+  margin-bottom:8px; line-height:1.2;
+}
+
+.pin-card-divider {
+  width:32px; height:1px;
+  background:linear-gradient(to right, var(--rosegold), transparent);
+  margin-bottom:10px;
+}
+
+.pin-card-date {
+  font-size:0.65rem; color:var(--ink-faint);
+  letter-spacing:0.08em; margin-bottom:6px;
+  font-style:italic;
+}
+
+.pin-card-note {
+  font-family:'Lora',serif; font-style:italic;
+  font-size:0.78rem; line-height:1.65; color:var(--ink-dim);
+}
+
+.pin-card-close {
+  position:absolute; top:8px; right:10px;
+  background:rgba(250,244,236,0.85); border:none; cursor:pointer;
+  width:24px; height:24px; border-radius:50%;
+  font-size:0.75rem; color:var(--ink-dim);
+  display:flex; align-items:center; justify-content:center;
+  transition:background 0.2s;
+  box-shadow:0 1px 4px rgba(0,0,0,0.1);
+}
+.pin-card-close:hover { background:white; }
+
+/* ── COUNT BADGE ─────────────────────────────────────────────────────────── */
+.count-badge {
+  position:fixed; top:90px; left:50%; transform:translateX(-50%);
+  z-index:20; display:flex; gap:20px; pointer-events:none;
+}
+.count-item {
+  text-align:center;
+  opacity:0; animation:fadeUp 1s ease forwards;
+}
+.count-item:nth-child(1){ animation-delay:0.4s; }
+.count-item:nth-child(2){ animation-delay:0.6s; }
+.count-item:nth-child(3){ animation-delay:0.8s; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+
+.count-num {
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.6rem; font-weight:300; line-height:1;
+  color:var(--rosegold-d);
+}
+.count-lbl {
+  font-size:0.55rem; letter-spacing:0.18em;
+  text-transform:uppercase; color:var(--ink-faint);
+  margin-top:3px;
+}
+.count-div {
+  width:1px; background:rgba(196,154,122,0.25);
+  align-self:stretch; margin:4px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<!-- Corner flourishes -->
+<div class="corner tl"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1" fill="none"/>
+  <path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/>
+  <circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.5"/>
+  <circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.4"/>
+  <path d="M5 70 Q5 5 70 5" stroke="#c49a7a" stroke-width="0.3" fill="none" opacity="0.3"/>
+</svg></div>
+<div class="corner tr"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1" fill="none"/>
+  <path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/>
+  <circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.5"/>
+  <circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.4"/>
+</svg></div>
+<div class="corner bl"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1" fill="none"/>
+  <path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/>
+  <circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.5"/>
+  <circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.4"/>
+</svg></div>
+<div class="corner br"><svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 90 Q10 10 90 10" stroke="#c49a7a" stroke-width="1" fill="none"/>
+  <path d="M10 90 Q10 30 70 10" stroke="#c49a7a" stroke-width="0.5" fill="none" opacity="0.5"/>
+  <circle cx="10" cy="90" r="3" fill="#c49a7a" opacity="0.5"/>
+  <circle cx="90" cy="10" r="2" fill="#c49a7a" opacity="0.4"/>
+</svg></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-title">our map</div>
+  <div class="header-sub">· the places that are ours ·</div>
+</div>
+
+<!-- Count badges -->
+<div class="count-badge" id="countBadge">
+  <div class="count-item"><div class="count-num" id="countTotal">0</div><div class="count-lbl">places</div></div>
+  <div class="count-div"></div>
+  <div class="count-item"><div class="count-num" id="countMemory">0</div><div class="count-lbl">memories</div></div>
+  <div class="count-div"></div>
+  <div class="count-item"><div class="count-num" id="countDream">0</div><div class="count-lbl">dreams</div></div>
+</div>
+
+<!-- Globe -->
+<div id="globe-wrap">
+  <canvas id="globe"></canvas>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-dot memory"></div>
+    <span class="legend-label">a memory</span>
+  </div>
+  <div class="legend-div"></div>
+  <div class="legend-item">
+    <div class="legend-dot dream"></div>
+    <span class="legend-label">a dream</span>
+  </div>
+</div>
+
+<!-- Hint -->
+<div class="hint">drag to spin</div>
+
+<!-- Pin card tooltip -->
+<div class="pin-card" id="pinCard">
+  <button class="pin-card-close" id="pinClose">✕</button>
+  <div id="pinImgWrap"></div>
+  <div class="pin-card-body">
+    <div class="pin-card-type" id="pinType"></div>
+    <div class="pin-card-name" id="pinName"></div>
+    <div class="pin-card-divider"></div>
+    <div class="pin-card-date" id="pinDate"></div>
+    <div class="pin-card-note" id="pinNote"></div>
+  </div>
+</div>
+
+<script>
+// ── PLACES DATA ─────────────────────────────────────────────────────────────
+// lat/lng in degrees, type: "memory" | "dream"
+// photo: url string or null (shows emoji placeholder)
+// Add your own places here!
+const PLACES = [
+  {
+    name: "Bangalore",
+    lat: 12.97, lng: 77.59,
+    type: "memory",
+    emoji: "🌆",
+    date: "where it all began",
+    note: "the city that decided we were each other's. home.",
+    photo: null,
+  },
+  {
+    name: "Kyoto",
+    lat: 35.01, lng: 135.76,
+    type: "dream",
+    emoji: "⛩️",
+    date: "someday",
+    note: "cherry blossoms and quiet temples. i want to walk through all of it with you.",
+    photo: null,
+  },
+  {
+    name: "Santorini",
+    lat: 36.39, lng: 25.46,
+    type: "dream",
+    emoji: "🏛️",
+    date: "one day",
+    note: "white walls and the bluest water you've ever seen. we'd watch the sun set over the caldera.",
+    photo: null,
+  },
+  {
+    name: "Paris",
+    lat: 48.85, lng: 2.35,
+    type: "dream",
+    emoji: "🗼",
+    date: "on our list",
+    note: "because every city is better with you in it, but paris especially.",
+    photo: null,
+  },
+  {
+    name: "Coorg",
+    lat: 12.42, lng: 75.74,
+    type: "dream",
+    emoji: "☕",
+    date: "soon",
+    note: "misty hills and coffee plantations. a weekend just for us.",
+    photo: null,
+  },
+  {
+    name: "New Zealand",
+    lat: -43.53, lng: 172.63,
+    type: "dream",
+    emoji: "🏔️",
+    date: "big dream",
+    note: "the kind of landscape that makes you feel small in the best way. i want to feel that with you.",
+    photo: null,
+  },
+  {
+    name: "Goa",
+    lat: 15.49, lng: 73.82,
+    type: "dream",
+    emoji: "🌊",
+    date: "soon",
+    note: "golden hour on the beach, cold drinks, nowhere to be.",
+    photo: null,
+  },
+];
+
+// ── GLOBE SETUP ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('globe');
+const ctx    = canvas.getContext('2d');
+
+let R, cx, cy; // globe radius and center
+
+function resize() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const size = Math.min(vw * 0.72, vh * 0.72, 560);
+  canvas.width  = size;
+  canvas.height = size;
+  R  = size / 2 - 2;
+  cx = size / 2;
+  cy = size / 2;
+}
+
+// Rotation state (euler angles in radians)
+let rotX = 0.3,  // tilt (latitude offset)
+    rotY = 1.2;  // spin (longitude offset)
+
+// ── LAND DATA — simplified GeoJSON polygons ─────────────────────────────────
+// We'll fetch a lightweight topojson from a CDN and render it
+let landFeatures = null;
+let projCache = [];
+
+// Convert lat/lng to 3D unit vector
+function latLngTo3D(lat, lng) {
+  const phi   = (90 - lat) * Math.PI / 180;
+  const theta = (lng + 180) * Math.PI / 180;
+  return {
+    x:  Math.sin(phi) * Math.cos(theta),
+    y:  Math.cos(phi),
+    z:  Math.sin(phi) * Math.sin(theta),
+  };
+}
+
+// Rotate a 3D point by rotY (around Y axis) then rotX (around X axis)
+function rotate3D(p) {
+  // rotate around Y
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  let x1 =  p.x * cosY + p.z * sinY;
+  let y1 =  p.y;
+  let z1 = -p.x * sinY + p.z * cosY;
+  // rotate around X
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  let x2 = x1;
+  let y2 = y1 * cosX - z1 * sinX;
+  let z2 = y1 * sinX + z1 * cosX;
+  return { x: x2, y: y2, z: z2 };
+}
+
+// Project 3D point to 2D canvas
+function project(p) {
+  return {
+    x: cx + p.x * R,
+    y: cy - p.y * R,
+    visible: p.z > 0,
+  };
+}
+
+// ── DRAW ─────────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // ── Globe base
+  const grad = ctx.createRadialGradient(cx - R * 0.25, cy - R * 0.25, R * 0.1, cx, cy, R);
+  grad.addColorStop(0,   '#fdf8f2');
+  grad.addColorStop(0.4, '#f5ead8');
+  grad.addColorStop(0.8, '#e8d4bc');
+  grad.addColorStop(1,   '#d8c0a8');
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // ── Ocean tint
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(180,200,220,0.18)';
+  ctx.fill();
+
+  // ── Latitude / longitude grid lines
+  drawGrid();
+
+  // ── Land
+  if (landFeatures) drawLand();
+
+  // ── Atmosphere rim
+  const rim = ctx.createRadialGradient(cx, cy, R * 0.88, cx, cy, R);
+  rim.addColorStop(0, 'transparent');
+  rim.addColorStop(1, 'rgba(196,154,122,0.22)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = rim;
+  ctx.fill();
+
+  // ── Sheen highlight
+  const sheen = ctx.createRadialGradient(cx - R*0.3, cy - R*0.35, 0, cx - R*0.1, cy - R*0.1, R*0.7);
+  sheen.addColorStop(0, 'rgba(255,252,248,0.38)');
+  sheen.addColorStop(0.5, 'rgba(255,252,248,0.05)');
+  sheen.addColorStop(1, 'transparent');
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = sheen;
+  ctx.fill();
+
+  // ── Clip future drawing to globe
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R - 1, 0, Math.PI * 2);
+  ctx.clip();
+
+  // ── Pins
+  drawPins();
+
+  ctx.restore();
+}
+
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(180,150,120,0.12)';
+  ctx.lineWidth = 0.6;
+
+  // Latitude lines every 30°
+  for (let lat = -60; lat <= 60; lat += 30) {
+    ctx.beginPath();
+    let first = true;
+    for (let lng = -180; lng <= 180; lng += 3) {
+      const p3 = latLngTo3D(lat, lng);
+      const r  = rotate3D(p3);
+      const p2 = project(r);
+      if (!p2.visible) { first = true; continue; }
+      if (first) { ctx.moveTo(p2.x, p2.y); first = false; }
+      else ctx.lineTo(p2.x, p2.y);
+    }
+    ctx.stroke();
+  }
+
+  // Longitude lines every 30°
+  for (let lng = -180; lng < 180; lng += 30) {
+    ctx.beginPath();
+    let first = true;
+    for (let lat = -90; lat <= 90; lat += 3) {
+      const p3 = latLngTo3D(lat, lng);
+      const r  = rotate3D(p3);
+      const p2 = project(r);
+      if (!p2.visible) { first = true; continue; }
+      if (first) { ctx.moveTo(p2.x, p2.y); first = false; }
+      else ctx.lineTo(p2.x, p2.y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawLand() {
+  ctx.save();
+  landFeatures.forEach(feature => {
+    const geom = feature.geometry;
+    const polys = geom.type === 'Polygon'
+      ? [geom.coordinates]
+      : geom.coordinates;
+
+    polys.forEach(poly => {
+      poly.forEach(ring => {
+        ctx.beginPath();
+        let first = true, hadVisible = false;
+        ring.forEach(([lng, lat]) => {
+          const p3 = latLngTo3D(lat, lng);
+          const r  = rotate3D(p3);
+          const p2 = project(r);
+          if (!p2.visible) { first = true; return; }
+          hadVisible = true;
+          if (first) { ctx.moveTo(p2.x, p2.y); first = false; }
+          else ctx.lineTo(p2.x, p2.y);
+        });
+        if (hadVisible) {
+          ctx.fillStyle   = 'rgba(190,165,135,0.55)';
+          ctx.strokeStyle = 'rgba(160,130,100,0.35)';
+          ctx.lineWidth   = 0.5;
+          ctx.fill();
+          ctx.stroke();
+        }
+      });
+    });
+  });
+  ctx.restore();
+}
+
+// Precomputed pin screen positions (updated each frame)
+let pinScreenPositions = [];
+
+function drawPins() {
+  pinScreenPositions = [];
+
+  // Sort by z (depth) so front pins draw on top
+  const sorted = PLACES.map((place, idx) => {
+    const p3 = latLngTo3D(place.lat, place.lng);
+    const r  = rotate3D(p3);
+    return { place, idx, r };
+  }).sort((a, b) => a.r.z - b.r.z);
+
+  sorted.forEach(({ place, idx, r }) => {
+    const p2 = project(r);
+    const visible = r.z > -0.1;
+    const fade    = Math.max(0, Math.min(1, (r.z + 0.15) / 0.3));
+
+    pinScreenPositions[idx] = { x: p2.x, y: p2.y, visible, z: r.z };
+
+    if (!visible) return;
+
+    const isMemory = place.type === 'memory';
+    const col      = isMemory ? '#c8956a' : '#9a8cc0';
+    const colLight = isMemory ? '#e0b898' : '#c0b4e0';
+
+    // Pin glow
+    const glow = ctx.createRadialGradient(p2.x, p2.y, 0, p2.x, p2.y, 14);
+    glow.addColorStop(0, isMemory ? 'rgba(200,149,106,0.4)' : 'rgba(154,140,192,0.4)');
+    glow.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.arc(p2.x, p2.y, 14, 0, Math.PI * 2);
+    ctx.fillStyle = glow;
+    ctx.globalAlpha = fade;
+    ctx.fill();
+
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(p2.x, p2.y, 7, 0, Math.PI * 2);
+    ctx.fillStyle   = 'rgba(250,244,236,0.9)';
+    ctx.strokeStyle = col;
+    ctx.lineWidth   = 1.5;
+    ctx.globalAlpha = fade;
+    ctx.fill();
+    ctx.stroke();
+
+    // Inner dot
+    ctx.beginPath();
+    ctx.arc(p2.x, p2.y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = col;
+    ctx.globalAlpha = fade;
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+  });
+}
+
+// ── LOAD LAND DATA ──────────────────────────────────────────────────────────
+// Using a simple CDN-hosted world GeoJSON (Natural Earth 110m)
+async function loadLand() {
+  try {
+    const resp = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+    const topo = await resp.json();
+    // Convert topojson to geojson manually (lightweight)
+    const land = topoToGeo(topo, topo.objects.countries);
+    landFeatures = land.features;
+  } catch(e) {
+    console.warn('Could not load land data', e);
+    landFeatures = [];
+  }
+}
+
+// Minimal topojson → geojson converter
+function topoToGeo(topo, obj) {
+  const arcs = topo.arcs;
+  const scale = topo.transform?.scale || [1,1];
+  const translate = topo.transform?.translate || [0,0];
+
+  // Decode arc
+  function decodeArc(arc) {
+    let x=0, y=0;
+    return arc.map(([dx,dy]) => {
+      x += dx; y += dy;
+      return [x * scale[0] + translate[0], y * scale[1] + translate[1]];
+    });
+  }
+
+  function getArc(i) {
+    if (i < 0) return decodeArc(arcs[~i]).reverse();
+    return decodeArc(arcs[i]);
+  }
+
+  function getRing(indices) {
+    return indices.flatMap(i => getArc(i));
+  }
+
+  function geomToFeature(geom) {
+    if (geom.type === 'Polygon') {
+      return {
+        type:'Feature',
+        geometry:{
+          type:'Polygon',
+          coordinates: geom.arcs.map(getRing)
+        }
+      };
+    } else if (geom.type === 'MultiPolygon') {
+      return {
+        type:'Feature',
+        geometry:{
+          type:'MultiPolygon',
+          coordinates: geom.arcs.map(p => p.map(getRing))
+        }
+      };
+    }
+    return null;
+  }
+
+  const features = obj.geometries.map(geomToFeature).filter(Boolean);
+  return { type:'FeatureCollection', features };
+}
+
+// ── ANIMATION LOOP ──────────────────────────────────────────────────────────
+let autoSpin = true;
+let spinning = false; // user is dragging
+
+function loop() {
+  if (autoSpin && !spinning && !activeCard) {
+    rotY += 0.0015;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ── DRAG ROTATION ────────────────────────────────────────────────────────────
+let lastX, lastY;
+let activeCard = null;
+
+canvas.addEventListener('mousedown', e => {
+  spinning = true;
+  autoSpin = false;
+  lastX = e.clientX; lastY = e.clientY;
+  document.body.classList.add('dragging');
+  hideCard();
+});
+
+window.addEventListener('mousemove', e => {
+  if (!spinning) return;
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+  rotY += dx * 0.005;
+  rotX += dy * 0.005;
+  rotX = Math.max(-Math.PI/2, Math.min(Math.PI/2, rotX));
+  lastX = e.clientX; lastY = e.clientY;
+});
+
+window.addEventListener('mouseup', () => {
+  spinning = false;
+  document.body.classList.remove('dragging');
+  // Resume auto-spin after 4s idle
+  setTimeout(() => { autoSpin = true; }, 4000);
+});
+
+// Touch support
+canvas.addEventListener('touchstart', e => {
+  spinning = true; autoSpin = false;
+  lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+  hideCard();
+}, { passive: true });
+
+window.addEventListener('touchmove', e => {
+  if (!spinning) return;
+  const dx = e.touches[0].clientX - lastX;
+  const dy = e.touches[0].clientY - lastY;
+  rotY += dx * 0.005;
+  rotX += dy * 0.005;
+  rotX = Math.max(-Math.PI/2, Math.min(Math.PI/2, rotX));
+  lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+}, { passive: true });
+
+window.addEventListener('touchend', () => {
+  spinning = false;
+  setTimeout(() => { autoSpin = true; }, 4000);
+});
+
+// ── PIN CLICK ────────────────────────────────────────────────────────────────
+canvas.addEventListener('click', e => {
+  if (hasDragged) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  // Find closest visible pin within 16px
+  let best = null, bestDist = 16;
+  pinScreenPositions.forEach((pos, idx) => {
+    if (!pos.visible || pos.z < 0) return;
+    const dist = Math.hypot(mx - pos.x, my - pos.y);
+    if (dist < bestDist) { bestDist = dist; best = idx; }
+  });
+
+  if (best !== null) {
+    showCard(best, e.clientX, e.clientY);
+  } else {
+    hideCard();
+  }
+});
+
+// Track drag vs click
+let hasDragged = false;
+canvas.addEventListener('mousedown', () => { hasDragged = false; });
+window.addEventListener('mousemove', () => { if (spinning) hasDragged = true; });
+
+// ── PIN CARD ──────────────────────────────────────────────────────────────────
+const card     = document.getElementById('pinCard');
+const pinClose = document.getElementById('pinClose');
+
+function showCard(idx, screenX, screenY) {
+  const place = PLACES[idx];
+  activeCard = idx;
+
+  // Type label
+  const typeEl = document.getElementById('pinType');
+  typeEl.textContent = place.type === 'memory' ? '✦ a memory' : '✦ a dream';
+  typeEl.className = 'pin-card-type ' + place.type;
+
+  document.getElementById('pinName').textContent = place.name;
+  document.getElementById('pinDate').textContent = place.date;
+  document.getElementById('pinNote').textContent = place.note;
+
+  // Image or emoji placeholder
+  const imgWrap = document.getElementById('pinImgWrap');
+  if (place.photo) {
+    imgWrap.innerHTML = `<img class="pin-card-img" src="${place.photo}" alt="${place.name}">`;
+  } else {
+    imgWrap.innerHTML = `<div class="pin-card-img-placeholder">${place.emoji}</div>`;
+  }
+
+  // Position card — keep it within viewport
+  const cardW = 260, cardH = 320;
+  let left = screenX + 16;
+  let top  = screenY - cardH / 2;
+  if (left + cardW > window.innerWidth  - 16) left = screenX - cardW - 16;
+  if (top  < 16) top = 16;
+  if (top  + cardH > window.innerHeight - 16) top = window.innerHeight - cardH - 16;
+
+  card.style.left = left + 'px';
+  card.style.top  = top  + 'px';
+  card.classList.add('visible');
+}
+
+function hideCard() {
+  card.classList.remove('visible');
+  activeCard = null;
+}
+
+pinClose.addEventListener('click', hideCard);
+
+// ── COUNT BADGES ──────────────────────────────────────────────────────────────
+document.getElementById('countTotal').textContent  = PLACES.length;
+document.getElementById('countMemory').textContent = PLACES.filter(p => p.type==='memory').length;
+document.getElementById('countDream').textContent  = PLACES.filter(p => p.type==='dream').length;
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+resize();
+loop();
+loadLand();
+window.addEventListener('resize', () => { resize(); });
+</script>
+</body>
+</html>
